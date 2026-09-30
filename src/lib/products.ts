@@ -20,6 +20,20 @@ export type Product = {
 const SELECT =
   "id,name,slug,description,price,category,image_key,rating,stock,featured,on_offer,created_at";
 
+/** Database errors are plain objects; convert them to real Errors so they display and log properly. */
+function toError(error: { message?: string; details?: string | null } | null | undefined): Error {
+  const message = error?.message || "Could not load products";
+  const err = new Error(message);
+  if (error?.details) (err as Error & { details?: string }).details = error.details;
+  return err;
+}
+
+/** Retry transient network failures a few times with backoff before surfacing an error. */
+const retryOptions = {
+  retry: 3,
+  retryDelay: (attempt: number) => Math.min(500 * 2 ** attempt, 4000),
+} as const;
+
 export const productsQuery = () =>
   queryOptions({
     queryKey: ["products"],
@@ -28,9 +42,10 @@ export const productsQuery = () =>
         .from("products")
         .select(SELECT)
         .order("created_at", { ascending: true });
-      if (error) throw error;
+      if (error) throw toError(error);
       return (data ?? []) as Product[];
     },
+    ...retryOptions,
   });
 
 export const productBySlugQuery = (slug: string) =>
@@ -42,7 +57,8 @@ export const productBySlugQuery = (slug: string) =>
         .select(SELECT)
         .eq("slug", slug)
         .maybeSingle();
-      if (error) throw error;
+      if (error) throw toError(error);
       return (data as Product | null) ?? null;
     },
+    ...retryOptions,
   });
