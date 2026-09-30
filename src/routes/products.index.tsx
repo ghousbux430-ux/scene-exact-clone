@@ -17,9 +17,9 @@ import { CATEGORIES } from "@/lib/product-images";
 import { productsQuery } from "@/lib/products";
 
 type ProductSearch = {
-  q?: string;
-  category?: string;
-  sort?: "newest" | "price-asc" | "price-desc" | "rating";
+  q?: string | undefined;
+  category?: string | undefined;
+  sort?: "newest" | "price-asc" | "price-desc" | "rating" | undefined;
 };
 
 export const Route = createFileRoute("/products/")({
